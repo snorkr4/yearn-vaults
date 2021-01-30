@@ -29,13 +29,7 @@ contract MigrationWrapper {
         VaultAPI[] memory vaults = new VaultAPI[](num_deployments);
 
         for (uint256 deployment_id = 0; deployment_id < num_deployments; deployment_id++) {
-            VaultAPI vault = VaultAPI(registry.vaults(address(token), deployment_id));
-
-            if (vault == latest) {
-                break;
-            }
-
-            vaults[deployment_id] = vault;
+            vaults[deployment_id] = VaultAPI(registry.vaults(address(token), deployment_id));
         }
 
         return vaults;
@@ -48,11 +42,19 @@ contract MigrationWrapper {
         for (uint256 id = 0; id < vaults.length; id++) {
             uint256 shares = vaults[id].balanceOf(account);
 
+            if (vaults[id] == latest) {
+                break;
+            }
+
             if (shares > 0 && vaults[id].allowance(account, address(this)) >= shares) {
-                uint256 amount = vaults[id].withdraw(shares, address(this));
-                migrated = migrated.add(latest.deposit(amount, account));
+                uint256 availableShares = vaults[id].maxAvailableShares();
+                if (availableShares < shares) shares = availableShares;
+                migrated = migrated.add(vaults[id].withdraw(shares, address(this)));
             }
         }
+
+        token.approve(address(latest), amount);
+        latest.deposit(migrated, account);
     }
 
     function migrate() external returns (uint256) {
