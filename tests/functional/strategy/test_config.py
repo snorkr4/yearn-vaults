@@ -50,37 +50,54 @@ def test_strategy_setEmergencyExit(strategy, gov, strategist, rando, chain):
 
 
 @pytest.mark.parametrize(
-    "getter,setter,caller,val",
+    "getter,setter,caller,val,guard_allowed",
     [
-        ("strategist", "setStrategist", "gov", None),
-        ("rewards", "setRewards", "strategist", None),
-        ("keeper", "setKeeper", "strategist", None),
-        ("minReportDelay", "setMinReportDelay", "strategist", 1000),
-        ("maxReportDelay", "setMaxReportDelay", "strategist", 1000),
-        ("profitFactor", "setProfitFactor", "strategist", 1000),
-        ("debtThreshold", "setDebtThreshold", "strategist", 1000),
+        ("strategist", "setStrategist", "gov", None, True),
+        ("rewards", "setRewards", "strategist", None, True),
+        ("rewards", "setRewards", "gov", None, False),
+        ("keeper", "setKeeper", "strategist", None, True),
+        ("keeper", "setKeeper", "gov", None, True),
+        ("minReportDelay", "setMinReportDelay", "strategist", 1000, True),
+        ("minReportDelay", "setMinReportDelay", "gov", 2000, True),
+        ("maxReportDelay", "setMaxReportDelay", "strategist", 1000, True),
+        ("maxReportDelay", "setMaxReportDelay", "gov", 2000, True),
+        ("profitFactor", "setProfitFactor", "strategist", 1000, True),
+        ("profitFactor", "setProfitFactor", "gov", 2000, True),
+        ("debtThreshold", "setDebtThreshold", "strategist", 1000, True),
+        ("debtThreshold", "setDebtThreshold", "gov", 2000, True),
     ],
 )
 def test_strategy_setParams(
-    gov, strategist, strategy, rando, getter, setter, caller, val
+    gov, strategist, strategy, rando, getter, setter, caller, val, guard_allowed
 ):
-    if not val:
+    if val is None:
         # Can't access fixtures, so use None to mean any random address
         val = rando
 
     prev_val = getattr(strategy, getter)()
 
-    # Only governance or strategist can set this param
+    # None of these params can be set by a rando
     with brownie.reverts():
         getattr(strategy, setter)(val, {"from": rando})
 
     caller = {"gov": gov, "strategist": strategist}[caller]
 
-    getattr(strategy, setter)(val, {"from": caller})
-    assert getattr(strategy, getter)() == val
+    if guard_allowed:
+        getattr(strategy, setter)(val, {"from": caller})
+        assert getattr(strategy, getter)() == val
 
-    getattr(strategy, setter)(prev_val, {"from": caller})
-    assert getattr(strategy, getter)() == prev_val
+        getattr(strategy, setter)(prev_val, {"from": caller})
+        assert getattr(strategy, getter)() == prev_val
+    else:
+        with brownie.reverts():
+            getattr(strategy, setter)(val, {"from": caller})
+
+
+def test_strategy_setParams_bad_vals(gov, strategist, strategy):
+    with brownie.reverts():
+        strategy.setKeeper(ZERO_ADDRESS, {"from": gov})
+    with brownie.reverts():
+        strategy.setRewards(ZERO_ADDRESS, {"from": strategist})
 
 
 def test_strategist_update(gov, strategist, strategy, rando):
