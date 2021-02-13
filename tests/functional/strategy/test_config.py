@@ -50,25 +50,25 @@ def test_strategy_setEmergencyExit(strategy, gov, strategist, rando, chain):
 
 
 @pytest.mark.parametrize(
-    "getter,setter,caller,val,guard_allowed",
+    "getter,setter,caller,val,guard_allowed, authority_error",
     [
-        ("strategist", "setStrategist", "gov", None, True),
-        ("rewards", "setRewards", "strategist", None, True),
-        ("rewards", "setRewards", "gov", None, False),
-        ("keeper", "setKeeper", "strategist", None, True),
-        ("keeper", "setKeeper", "gov", None, True),
-        ("minReportDelay", "setMinReportDelay", "strategist", 1000, True),
-        ("minReportDelay", "setMinReportDelay", "gov", 2000, True),
-        ("maxReportDelay", "setMaxReportDelay", "strategist", 1000, True),
-        ("maxReportDelay", "setMaxReportDelay", "gov", 2000, True),
-        ("profitFactor", "setProfitFactor", "strategist", 1000, True),
-        ("profitFactor", "setProfitFactor", "gov", 2000, True),
-        ("debtThreshold", "setDebtThreshold", "strategist", 1000, True),
-        ("debtThreshold", "setDebtThreshold", "gov", 2000, True),
+        ("strategist", "setStrategist", "gov", None, True, "!authorized"),
+        ("rewards", "setRewards", "strategist", None, True, "!strategist"),
+        ("rewards", "setRewards", "gov", None, False, "!strategist"),
+        ("keeper", "setKeeper", "strategist", None, True, "!authorized"),
+        ("keeper", "setKeeper", "gov", None, True, "!authorized"),
+        ("minReportDelay", "setMinReportDelay", "strategist", 1000, True, "!authorized"),
+        ("minReportDelay", "setMinReportDelay", "gov", 2000, True, "!authorized"),
+        ("maxReportDelay", "setMaxReportDelay", "strategist", 1000, True, "!authorized"),
+        ("maxReportDelay", "setMaxReportDelay", "gov", 2000, True, "!authorized"),
+        ("profitFactor", "setProfitFactor", "strategist", 1000, True, "!authorized"),
+        ("profitFactor", "setProfitFactor", "gov", 2000, True, "!authorized"),
+        ("debtThreshold", "setDebtThreshold", "strategist", 1000, True, "!authorized"),
+        ("debtThreshold", "setDebtThreshold", "gov", 2000, True, "!authorized"),
     ],
 )
 def test_strategy_setParams(
-    gov, strategist, strategy, rando, getter, setter, caller, val, guard_allowed
+    gov, strategist, strategy, rando, getter, setter, caller, val, guard_allowed, authority_error
 ):
     if val is None:
         # Can't access fixtures, so use None to mean any random address
@@ -77,7 +77,7 @@ def test_strategy_setParams(
     prev_val = getattr(strategy, getter)()
 
     # None of these params can be set by a rando
-    with brownie.reverts("!authorized"):
+    with brownie.reverts(authority_error):
         getattr(strategy, setter)(val, {"from": rando})
 
     caller = {"gov": gov, "strategist": strategist}[caller]
@@ -89,7 +89,7 @@ def test_strategy_setParams(
         getattr(strategy, setter)(prev_val, {"from": caller})
         assert getattr(strategy, getter)() == prev_val
     else:
-        with brownie.reverts("!authorized"):
+        with brownie.reverts(authority_error):
             getattr(strategy, setter)(val, {"from": caller})
 
 
