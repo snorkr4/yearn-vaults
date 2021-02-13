@@ -52,7 +52,6 @@ def test_strategy_setEmergencyExit(strategy, gov, strategist, rando, chain):
 @pytest.mark.parametrize(
     "getter,setter,caller,val,guard_allowed, authority_error",
     [
-        ("strategist", "setStrategist", "strategist", None, True, "!authorized"),
         ("strategist", "setStrategist", "gov", None, True, "!authorized"),
         ("rewards", "setRewards", "strategist", None, True, "!strategist"),
         ("rewards", "setRewards", "gov", None, False, "!strategist"),
@@ -92,6 +91,18 @@ def test_strategy_setParams(
     else:
         with brownie.reverts(authority_error):
             getattr(strategy, setter)(val, {"from": caller})
+
+
+def test_set_strategist_authority(strategist, rando):
+    # Testing setStrategist as a strategist isn't clean with test_strategy_setParams,
+    # so this test handles it.
+
+    # As strategist, set strategist to rando.
+    strategy.setStrategist(rando, {"from": strategist})
+
+    # Now the original strategist shouldn't be able to set strategist again
+    with brownie.reverts("!authorized"):
+        strategy.setStrategist(rando, {"from": strategist})
 
 
 def test_strategy_setParams_bad_vals(gov, strategist, strategy):
