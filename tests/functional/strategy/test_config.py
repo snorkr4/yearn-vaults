@@ -93,7 +93,7 @@ def test_strategy_setParams(
             getattr(strategy, setter)(val, {"from": caller})
 
 
-def test_set_strategist_authority(strategist, rando):
+def test_set_strategist_authority(strategy, strategist, rando):
     # Testing setStrategist as a strategist isn't clean with test_strategy_setParams,
     # so this test handles it.
 
