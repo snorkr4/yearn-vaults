@@ -52,6 +52,7 @@ def test_strategy_setEmergencyExit(strategy, gov, strategist, rando, chain):
 @pytest.mark.parametrize(
     "getter,setter,caller,val,guard_allowed, authority_error",
     [
+        ("strategist", "setStrategist", "strategist", None, True, "!authorized"),
         ("strategist", "setStrategist", "gov", None, True, "!authorized"),
         ("rewards", "setRewards", "strategist", None, True, "!strategist"),
         ("rewards", "setRewards", "gov", None, False, "!strategist"),
