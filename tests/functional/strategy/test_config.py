@@ -77,7 +77,7 @@ def test_strategy_setParams(
     prev_val = getattr(strategy, getter)()
 
     # None of these params can be set by a rando
-    with brownie.reverts():
+    with brownie.reverts("!authorized"):
         getattr(strategy, setter)(val, {"from": rando})
 
     caller = {"gov": gov, "strategist": strategist}[caller]
@@ -89,7 +89,7 @@ def test_strategy_setParams(
         getattr(strategy, setter)(prev_val, {"from": caller})
         assert getattr(strategy, getter)() == prev_val
     else:
-        with brownie.reverts():
+        with brownie.reverts("!authorized"):
             getattr(strategy, setter)(val, {"from": caller})
 
 
